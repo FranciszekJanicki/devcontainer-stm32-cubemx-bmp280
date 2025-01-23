@@ -130,9 +130,10 @@ extern "C" {
  *        which is subject to manufacturing process variations.
  */
 #if !defined(HSI48_VALUE)
-#define HSI48_VALUE                                                                                    \
-    ((uint32_t)48000000U) /*!< Value of the Internal High Speed oscillator for USB FS/SDMMC/RNG in Hz. \
-                           The real value my vary depending on manufacturing process variations.*/
+#define HSI48_VALUE                                                                                \
+    ((uint32_t)48000000U) /*!< Value of the Internal High Speed oscillator for USB FS/SDMMC/RNG in \
+                           Hz. The real value my vary depending on manufacturing process           \
+                           variations.*/
 #endif                    /* HSI48_VALUE */
 
 /**

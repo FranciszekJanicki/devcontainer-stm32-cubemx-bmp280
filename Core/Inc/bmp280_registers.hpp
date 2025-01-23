@@ -1,5 +1,5 @@
-#ifndef BMP280_REGISTER_MAP_HPP
-#define BMP280_REGISTER_MAP_HPP
+#ifndef BMP280_REGISTERS_HPP
+#define BMP280_REGISTERS_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -79,4 +79,4 @@ namespace BMP280 {
 
 #undef packed
 
-#endif // BMP280_REGISTER_MAP_HPP
+#endif // BMP280_REGISTERS_HPP

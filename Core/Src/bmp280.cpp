@@ -1,5 +1,5 @@
 #include "bmp280.hpp"
-#include "bmp280_register_map.hpp"
+#include "bmp280_registers.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdint>

@@ -28,10 +28,12 @@ int main()
                   BMP280::Filter::FILTER_OFF};
 
     while (true) {
-        printf("Temperature: %2f Pressure: %2f, Altitude: %2f",
+        printf("Temperature: %f Pressure: %d, Altitude: %d",
                bmp280.get_temperature().value(),
                bmp280.get_pressure().value(),
                bmp280.get_altitude(101300.0F).value());
+
+        HAL_Delay(50);
     }
 
     return 0;

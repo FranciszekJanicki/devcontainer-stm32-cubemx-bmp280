@@ -1,7 +1,7 @@
 #ifndef BMP280_HPP
 #define BMP280_HPP
 
-#include "bmp280_register_map.hpp"
+#include "bmp280_registers.hpp"
 #include "spi_device.hpp"
 #include "utility.hpp"
 #include <cstdint>
