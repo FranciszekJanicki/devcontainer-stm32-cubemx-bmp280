@@ -16,16 +16,17 @@ int main()
     MX_USART2_UART_Init();
     MX_SPI1_Init();
 
-    using BMP280 = BMP280::BMP280;
-    using namespace Utility;
+    using namespace BMP280;
 
     SPIDevice spi_device(&hspi1, BMP280_CS_GPIO_Port, BMP280_CS_Pin);
 
-    BMP280 bmp280{std::move(spi_device),
-                  BMP280::Mode::FORCED,
-                  BMP280::Resolution::STANDARD,
-                  BMP280::Resolution::STANDARD,
-                  BMP280::Filter::FILTER_OFF};
+    CTRL_MEAS ctrl_meas{.osrs_t = std::to_underlying(Resolution::STANDARD),
+                        .osrs_p = std::to_underlying(Resolution::STANDARD),
+                        .mode = std::to_underlying(Mode::NORMAL)};
+
+    CONFIG config{.spi3w_en = false, .filter = std::to_underlying(Filter::FILTER_OFF), .t_sb = false};
+
+    BMP280::BMP280 bmp280{std::move(spi_device), ctrl_meas, config};
 
     while (true) {
         printf("Temperature: %f Pressure: %d, Altitude: %d",

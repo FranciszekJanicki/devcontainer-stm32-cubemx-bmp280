@@ -36,9 +36,9 @@ namespace BMP280 {
 
     struct STATUS {
         std::uint8_t : 4;
-        bool measuring : 1;
+        std::uint8_t measuring : 1;
         std::uint8_t : 2;
-        bool im_update : 1;
+        std::uint8_t im_update : 1;
     } packed;
 
     struct CTRL_MEAS {
@@ -48,8 +48,8 @@ namespace BMP280 {
     } packed;
 
     struct CONFIG {
-        bool spi3w_en : 1;
-        bool : 1;
+        std::uint8_t spi3w_en : 1;
+        std::uint8_t : 1;
         std::uint8_t filter : 3;
         std::uint8_t t_sb : 3;
     } packed;

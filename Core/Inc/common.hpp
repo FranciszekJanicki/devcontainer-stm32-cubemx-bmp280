@@ -7,13 +7,13 @@
 #include "stm32l4xx_hal_tim.h"
 #include "stm32l4xx_hal_uart.h"
 
-namespace Utility {
+namespace BMP280 {
 
-    using SPIBusHandle = SPI_HandleTypeDef*;
+    using SPIHandle = SPI_HandleTypeDef*;
     using TIMHandle = TIM_HandleTypeDef*;
     using GPIOHandle = GPIO_TypeDef*;
     using UARTHandle = UART_HandleTypeDef*;
 
-}; // namespace Utility
+}; // namespace BMP280
 
 #endif // COMMON_HPP

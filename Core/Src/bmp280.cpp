@@ -1,27 +1,16 @@
 #include "bmp280.hpp"
-#include "bmp280_registers.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <optional>
 #include <utility>
 
-using SPIDevice = BMP280::BMP280::SPIDevice;
-using Mode = BMP280::BMP280::Mode;
-using OptionalTemp = BMP280::BMP280::OptionalTemp;
-using OptionalPress = BMP280::BMP280::OptionalPress;
-using OptionalAlt = BMP280::BMP280::OptionalAlt;
-
 namespace BMP280 {
 
-    BMP280::BMP280(SPIDevice&& spi_device,
-                   Mode const mode,
-                   Resolution const temp_resolution,
-                   Resolution const press_resolution,
-                   Filter const filter) noexcept :
+    BMP280::BMP280(SPIDevice&& spi_device, CTRL_MEAS const ctrl_meas, CONFIG const config) noexcept :
         spi_device_{std::forward<SPIDevice>(spi_device)}
     {
-        this->initialize(mode, temp_resolution, press_resolution, filter);
+        this->initialize(ctrl_meas, config);
     }
 
     BMP280::~BMP280() noexcept
@@ -29,10 +18,10 @@ namespace BMP280 {
         this->deinitialize();
     }
 
-    OptionalTemp BMP280::get_temperature() noexcept
+    std::optional<float> BMP280::get_temperature() noexcept
     {
         if (!this->initialized_) {
-            return OptionalTemp{std::nullopt};
+            return std::optional<float>{std::nullopt};
         }
 
         this->set_mode(Mode::FORCED);
@@ -47,13 +36,13 @@ namespace BMP280 {
             14;
         this->t_fine_ = var1 + var2;
 
-        return OptionalTemp{((this->t_fine_ * 5 + 128) >> 8) / 100};
+        return std::optional<float>{((this->t_fine_ * 5 + 128) >> 8) / 100};
     }
 
-    OptionalPress BMP280::get_pressure() noexcept
+    std::optional<std::int32_t> BMP280::get_pressure() noexcept
     {
         if (!this->initialized_) {
-            return OptionalPress{std::nullopt};
+            return std::optional<std::int32_t>{std::nullopt};
         }
 
         [[maybe_unused]] this->get_temperature();
@@ -72,26 +61,22 @@ namespace BMP280 {
         var1 = (((int64_t)this->p9_) * (p >> 13) * (p >> 13)) >> 25;
         var2 = (((int64_t)this->p8_) * p) >> 19;
 
-        return OptionalPress{((p + var1 + var2) >> 8) + (((int64_t)this->p7_) << 4) / 256};
+        return std::optional<std::int32_t>{((p + var1 + var2) >> 8) + (((int64_t)this->p7_) << 4) / 256};
     }
 
-    OptionalAlt BMP280::get_altitude(Press const sea_level_pa) noexcept
+    std::optional<float> BMP280::get_altitude(std::int32_t const sea_level_pa) noexcept
     {
-        return this->get_pressure().transform([sea_level_pa](Press const pressure) {
+        return this->get_pressure().transform([sea_level_pa](std::int32_t const pressure) {
             return 44330.0F * (1.0F - std::pow(pressure / sea_level_pa, 0.1903F));
         });
     }
 
-    void BMP280::initialize(Mode const mode,
-                            Resolution const temp_resolution,
-                            Resolution const press_resolution,
-                            Filter const filter) noexcept
+    void BMP280::initialize(CTRL_MEAS const ctrl_meas, CONFIG const config) noexcept
     {
         if (this->is_valid_device_id()) {
             this->device_reset();
-            this->read_digits();
-            this->set_config(filter);
-            this->set_control(mode, temp_resolution, press_resolution);
+            this->set_config_register(config);
+            this->set_ctrl_meas_register(ctrl_meas);
             this->initialized_ = true;
         }
     }
@@ -122,7 +107,7 @@ namespace BMP280 {
 
     void BMP280::set_mode(Mode const mode) const noexcept
     {
-        auto ctrl_meas{this->get_ctrl_meas_register()};
+        auto ctrl_meas = this->get_ctrl_meas_register();
         ctrl_meas.mode = std::to_underlying(mode);
         this->set_ctrl_meas_register(ctrl_meas);
     }
@@ -147,20 +132,9 @@ namespace BMP280 {
         this->set_reset_register(RESET{.reset = 0x00});
     }
 
-    void BMP280::set_config(Filter const filter) const noexcept
+    CALIB BMP280::get_calib_register(std::uint8_t const num) const noexcept
     {
-        this->set_config_register(CONFIG{.spi3w_en = 0x00, .filter = std::to_underlying(filter), .t_sb = 0x00});
-    }
-
-    void BMP280::set_control(Mode const mode,
-                             Resolution const temp_resolution,
-                             Resolution const press_resolution) const noexcept
-    {
-        this->set_ctrl_meas_register(CTRL_MEAS{
-            .osrs_t = std::to_underlying(temp_resolution),
-            .osrs_p = std::to_underlying(press_resolution),
-            .mode = std::to_underlying(mode),
-        });
+        return std::bit_cast<CALIB>(this->spi_device_.read_byte(std::to_underlying(RA::CALIB00) + num));
     }
 
     void BMP280::set_calib_register(std::uint8_t const num, CALIB const calib) const noexcept
@@ -168,9 +142,19 @@ namespace BMP280 {
         this->spi_device_.write_byte(std::to_underlying(RA::CALIB00) + num, std::bit_cast<std::uint8_t>(calib));
     }
 
+    RESET BMP280::get_reset_register() const noexcept
+    {
+        return std::bit_cast<RESET>(this->spi_device_.read_byte(std::to_underlying(RA::RESET)));
+    }
+
     void BMP280::set_reset_register(RESET const reset) const noexcept
     {
         this->spi_device_.write_byte(std::to_underlying(RA::RESET), std::bit_cast<std::uint8_t>(reset));
+    }
+
+    CONFIG BMP280::get_config_register() const noexcept
+    {
+        return std::bit_cast<CONFIG>(this->spi_device_.read_byte(std::to_underlying(RA::CONFIG)));
     }
 
     void BMP280::set_config_register(CONFIG const config) const noexcept
@@ -181,11 +165,6 @@ namespace BMP280 {
     void BMP280::set_ctrl_meas_register(CTRL_MEAS const ctrl_meas) const noexcept
     {
         this->spi_device_.write_byte(std::to_underlying(RA::CTRL_MEAS), std::bit_cast<std::uint8_t>(ctrl_meas));
-    }
-
-    CALIB BMP280::get_calib_register(std::uint8_t const num) const noexcept
-    {
-        return std::bit_cast<CALIB>(this->spi_device_.read_byte(std::to_underlying(RA::CALIB00) + num));
     }
 
     ID BMP280::get_id_register() const noexcept
