@@ -11,7 +11,7 @@
 #include <ranges>
 #include <utility>
 
-namespace BMP280 {
+namespace Utility {
 
     struct SPIDevice {
     public:
@@ -196,6 +196,6 @@ namespace BMP280 {
         }
     }
 
-}; // namespace BMP280
+}; // namespace Utility
 
 #endif // SPI_DEVICE_HPP

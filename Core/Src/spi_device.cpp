@@ -1,7 +1,7 @@
 #include "spi_device.hpp"
 #include "stm32l4xx_hal.h"
 
-namespace BMP280 {
+namespace Utility {
 
     SPIDevice::SPIDevice(SPIHandle const spi_bus, GPIOHandle const gpio, std::uint16_t const chip_select) noexcept :
         chip_select_{chip_select}, spi_bus_{spi_bus}, gpio_{gpio}
@@ -115,4 +115,4 @@ namespace BMP280 {
         }
     }
 
-}; // namespace BMP280
+}; // namespace Utility

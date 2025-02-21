@@ -13,6 +13,8 @@ namespace BMP280 {
 
     struct BMP280 {
     public:
+        using SPIDevice = Utility::SPIDevice;
+
         BMP280() noexcept = default;
         BMP280(SPIDevice&& spi_device, CTRL_MEAS const ctrl_meas, CONFIG const config) noexcept;
 

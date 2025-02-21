@@ -17,6 +17,7 @@ int main()
     MX_SPI1_Init();
 
     using namespace BMP280;
+    using namespace Utility;
 
     SPIDevice spi_device(&hspi1, BMP280_CS_GPIO_Port, BMP280_CS_Pin);
 
