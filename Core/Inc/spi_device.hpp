@@ -2,6 +2,7 @@
 #define SPI_DEVICE_HPP
 
 #include "common.hpp"
+#include "gpio.hpp"
 #include "stm32l4xx_hal.h"
 #include "utility.hpp"
 #include <algorithm>
@@ -16,7 +17,7 @@ namespace Utility {
     struct SPIDevice {
     public:
         SPIDevice() noexcept = default;
-        SPIDevice(SPIHandle const spi_bus, GPIOHandle const gpio, std::uint16_t const chip_select) noexcept;
+        SPIDevice(SPIHandle const spi_bus, GPIO const chip_select) noexcept;
 
         SPIDevice(SPIDevice const& other) = delete;
         SPIDevice(SPIDevice&& other) noexcept = default;
@@ -85,6 +86,13 @@ namespace Utility {
         void write_bit(std::uint8_t const reg_address, bool const bit, std::uint8_t const position) const noexcept;
 
     private:
+        enum struct RegRW : std::uint8_t {
+            REG_READ,
+            REG_WRITE,
+        };
+
+        static std::uint8_t reg_address_to_command(std::uint8_t const reg_address, RegRW const reg_rw) noexcept;
+
         static constexpr std::uint32_t TIMEOUT{100U};
 
         void initialize() noexcept;
@@ -92,10 +100,9 @@ namespace Utility {
 
         bool initialized_{false};
 
-        std::uint16_t chip_select_{};
+        GPIO chip_select_{};
 
         SPIHandle spi_bus_{nullptr};
-        GPIOHandle gpio_{nullptr};
     };
 
     template <std::size_t SIZE>
@@ -115,9 +122,9 @@ namespace Utility {
     {
         std::array<std::uint8_t, SIZE> transmit{bytes};
         if (this->initialized_) {
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_RESET);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_RESET);
             HAL_SPI_Transmit(this->spi_bus_, transmit.data(), transmit.size(), TIMEOUT);
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_SET);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_SET);
         }
     }
 
@@ -138,9 +145,9 @@ namespace Utility {
     {
         std::array<std::uint8_t, SIZE> receive{};
         if (this->initialized_) {
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_RESET);
-            HAL_SPI_Receive(this->spi_bus_, receive.data(), receive.size(), TIMEOUT);
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_SET);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_RESET);
+            HAL_SPI_Receive(this->spi_bus_, receive.data(), SIZE, TIMEOUT);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_SET);
         }
         return receive;
     }
@@ -160,11 +167,12 @@ namespace Utility {
     template <std::size_t SIZE>
     std::array<std::uint8_t, SIZE> SPIDevice::read_bytes(std::uint8_t const reg_address) const noexcept
     {
+        std::uint8_t command = reg_address_to_command(reg_address, RegRW::REG_READ);
         std::array<std::uint8_t, SIZE> read{};
         if (this->initialized_) {
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_RESET);
-            HAL_SPI_TransmitReceive(this->spi_bus_, &reg_address, read.data(), read.size(), TIMEOUT);
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_SET);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_RESET);
+            HAL_SPI_TransmitReceive(this->spi_bus_, &command, read.data(), read.size(), TIMEOUT);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_SET);
         }
         return read;
     }
@@ -187,12 +195,14 @@ namespace Utility {
     void SPIDevice::write_bytes(std::uint8_t const reg_address,
                                 std::array<std::uint8_t, SIZE> const& bytes) const noexcept
     {
-        std::array<std::uint8_t, 1UL + SIZE> write{reg_address};
-        std::ranges::copy(bytes, write.data() + 1UL);
+        std::uint8_t command = reg_address_to_command(reg_address, RegRW::REG_WRITE);
+        std::array<std::uint8_t, 1UL + SIZE> write{};
+        std::memcpy(write.data(), &command, 1UL);
+        std::memcpy(write.data() + 1UL, bytes.data(), SIZE);
         if (this->initialized_) {
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_RESET);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_RESET);
             HAL_SPI_Transmit(this->spi_bus_, write.data(), write.size(), TIMEOUT);
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_SET);
+            gpio_write_pin(this->chip_select_, GPIO_PIN_SET);
         }
     }
 

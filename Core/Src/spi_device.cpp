@@ -3,8 +3,8 @@
 
 namespace Utility {
 
-    SPIDevice::SPIDevice(SPIHandle const spi_bus, GPIOHandle const gpio, std::uint16_t const chip_select) noexcept :
-        chip_select_{chip_select}, spi_bus_{spi_bus}, gpio_{gpio}
+    SPIDevice::SPIDevice(SPIHandle const spi_bus, GPIO const chip_select) noexcept :
+        chip_select_{chip_select}, spi_bus_{spi_bus}
     {
         this->initialize();
     }
@@ -99,18 +99,26 @@ namespace Utility {
         this->write_byte(reg_address, write);
     }
 
+    std::uint8_t SPIDevice::reg_address_to_command(std::uint8_t const reg_address, RegRW const reg_rw) noexcept
+    {
+        auto address_width = std::bit_width(reg_address);
+        auto command_byte = reg_address;
+        Utility::write_bit(command_byte, reg_rw == RegRW::REG_WRITE, static_cast<std::uint8_t>(address_width - 1U));
+        return command_byte;
+    }
+
     void SPIDevice::initialize() noexcept
     {
-        if (this->spi_bus_ != nullptr && this->gpio_ != nullptr) {
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_SET);
+        if (this->spi_bus_ != nullptr) {
+            gpio_write_pin(this->chip_select_, GPIO_PIN_SET);
             this->initialized_ = true;
         }
     }
 
     void SPIDevice::deinitialize() noexcept
     {
-        if (this->spi_bus_ != nullptr && this->gpio_ != nullptr) {
-            HAL_GPIO_WritePin(this->gpio_, this->chip_select_, GPIO_PinState::GPIO_PIN_RESET);
+        if (this->spi_bus_ != nullptr) {
+            gpio_write_pin(this->chip_select_, GPIO_PIN_RESET);
             this->initialized_ = false;
         }
     }

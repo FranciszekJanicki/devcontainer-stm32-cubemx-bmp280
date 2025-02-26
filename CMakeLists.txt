@@ -44,6 +44,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "Core/Src/gpio.c"
     "Core/Src/spi.c"
     "Core/Src/usart.c"
+    "Core/Inc/gpio.hpp"
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

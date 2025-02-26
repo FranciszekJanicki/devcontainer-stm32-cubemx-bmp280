@@ -19,7 +19,7 @@ int main()
     using namespace BMP280;
     using namespace Utility;
 
-    SPIDevice spi_device(&hspi1, BMP280_CS_GPIO_Port, BMP280_CS_Pin);
+    SPIDevice spi_device(&hspi1, GPIO::PA4);
 
     CTRL_MEAS ctrl_meas{.osrs_t = std::to_underlying(Resolution::STANDARD),
                         .osrs_p = std::to_underlying(Resolution::STANDARD),
